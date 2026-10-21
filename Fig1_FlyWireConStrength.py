@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-UND_CON_CSV = 'C:/Users/bryce/OneDrive/Desktop/Research/Heavy-Tailed CS/FAFB/Data/FlyWireUndCons.csv'
-DIR_CON_CSV = 'C:/Users/bryce/OneDrive/Desktop/Research/Heavy-Tailed CS/FAFB/Data/FlyWireDirCons.csv'
-OUT_SVG     = 'C:/Users/bryce/OneDrive/Desktop/Research/Heavy-Tailed CS/Figure Files/Figure 1/ConStrength.svg'
+UND_CON_CSV = '[...]'
+DIR_CON_CSV = '[...]'
+OUT_SVG     = '[...]'
 
 os.makedirs(os.path.dirname(OUT_SVG), exist_ok=True)
 
