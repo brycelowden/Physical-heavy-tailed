@@ -10,7 +10,6 @@ OUT_SVG     = 'C:/Users/bryce/OneDrive/Desktop/Research/Heavy-Tailed CS/Figure F
 
 os.makedirs(os.path.dirname(OUT_SVG), exist_ok=True)
 
-print("Loading undirected connection matrix...")
 df_und = pd.read_csv(UND_CON_CSV)
 syn_counts = df_und['undirected_syn_count'].values
 neuron_ids = df_und[['neuron_id_1','neuron_id_2']].values
