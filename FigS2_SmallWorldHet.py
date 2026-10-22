@@ -213,7 +213,4 @@ ax.set_xlim(10**(-4),1)
 
 plt.savefig(OUT_SVG)
 
-
-# For random graph plot in S2, use:
-
 # N = 139255   S = 1105   rb = 0.25   rt = 0.1   rs = 1   trials = 1000   beta_min = 10^-4   beta_max = 1   sims = 30
