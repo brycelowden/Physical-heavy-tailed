@@ -1,4 +1,4 @@
-UND_CSV = 'C:/Users/bryce/OneDrive/Desktop/Research/Heavy-Tailed CS/BANCData/BANCUndirectedConnections.csv'
+UND_CSV = '[...]' # Undirected BANC CSV
 
 import pandas as pd
 import numpy as np
