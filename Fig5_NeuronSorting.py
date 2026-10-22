@@ -7,30 +7,21 @@ from tqdm import tqdm
 # This file must be run on a Linux (virtual) machine
 # Generates the following neuron-level quantities: 
 # 'neuropil','reciprocity','neurotransmitter_type','distance_olfactory','distance_optic','clustering_coefficient','closeness_centrality','betweenness_centrality'
-#
-# Files are located/saved in a separate Linux directory
 
 # Import graph-tool utilities
 import graph_tool.all as gt
 
-# =============================================================================
-# 1. FILE PATH CONFIGURATIONS (NATIVE LINUX DIRECTORY)
-# =============================================================================
-BASE_DIR    = '/home/bryce/HeavyTailFiles'
+BASE_DIR    = '[...]'
 
 FIG4_CSV    = f'{BASE_DIR}/Fig4_NeuronData.csv'
 CON_CSV     = f'{BASE_DIR}/FlyWireDirCons.csv'
 UND_CSV     = f'{BASE_DIR}/FlyWireUndCons.csv'
 PER_PARQUET = f'{BASE_DIR}/periphery_data.parquet'
 
-# Final Output saved directly to the native Linux folder
 OUT_CSV     = f'{BASE_DIR}/Fig5_SortedNeurons.csv'
 
 os.makedirs(os.path.dirname(OUT_CSV), exist_ok=True)
 
-# =============================================================================
-# 2. DICTIONARY MAPPING SETUP
-# =============================================================================
 REGION_MAPPING = {
     "Optic_Lobe": ["AME_L", "LA_L", "ME_L", "LO_L", "LOP_L","AME_R", "LA_R", "ME_R", "LO_R", "LOP_R"],
     "Lateral_Complex": ["BU_L","LAL_L","GA_L","BU_R","LAL_R","GA_R"],
@@ -53,25 +44,20 @@ for true_np, sub_nps in REGION_MAPPING.items():
     for sub in sub_nps:
         SUB_TO_TRUE_NP[sub] = true_np
 
-# =============================================================================
-# 3. LOAD MASTER REGISTER (FIGURE 4 DATA)
-# =============================================================================
-print("Loading master Fig4 neuron table...")
+print("Loading Fig4 table...")
 fig4_df = pd.read_csv(FIG4_CSV)
 
 if 'id' in fig4_df.columns:
     fig4_df = fig4_df.rename(columns={'id': 'root_id'})
     fig4_df['root_id'] = fig4_df['root_id'].astype(str)
 else:
-    raise KeyError("Could not find 'id' column in the provided Fig4 CSV file.")
+    raise KeyError("Fig4 CSV file improperly setup")
 
 target_neurons = set(fig4_df['root_id'].unique())
-print(f"Targeting profile updates for {len(target_neurons)} neurons.")
 
-# =============================================================================
-# 4. PROCESS LARGE CONNECTIVITY DATA (ACCUMULATE SYNAPSES FOR NP & NT)
-# =============================================================================
-print("Processing connectivity table for Neuropil, Neurotransmitter, and Reciprocity metrics...")
+# Connectivity results
+
+print("Processing Neuropil, Neurotransmitter, and Reciprocity...")
 con_cols = ['pre_root_id', 'post_root_id', 'neuropil', 'syn_count', 'nt_type']
 
 neuron_links = {nid: {'in': set(), 'out': set()} for nid in target_neurons}
@@ -103,15 +89,15 @@ for chunk in tqdm(raw_chunks, desc="Streaming Connectivity Columns"):
             neuron_links[row.post_root_id]['in'].add(row.pre_root_id)
 
 connectivity_results = []
-for nid in tqdm(target_neurons, desc="Compiling Local Morphological Characteristics"):
-    # Determine assigned neuropil by plurality of synapses
+for nid in tqdm(target_neurons):
+    # Assign neuropil by plurality of synapses
     np_dict = neuron_np_synapses[nid]
     assigned_neuropil = max(np_dict, key=np_dict.get) if np_dict else np.nan
     
-    # Determine neurotransmitter_type by plurality of synapses
+    # Assign neurotransmitter by plurality of synapses
     nt_dict = neuron_nt_synapses[nid]
     assigned_nt = max(nt_dict, key=nt_dict.get) if nt_dict else np.nan
-        
+    
     in_neighbors = neuron_links[nid]['in']
     out_neighbors = neuron_links[nid]['out']
     union_neighbors = in_neighbors.union(out_neighbors)
@@ -128,27 +114,21 @@ for nid in tqdm(target_neurons, desc="Compiling Local Morphological Characterist
 
 df_connectivity = pd.DataFrame(connectivity_results)
 
-# Garbage collect memory structures explicitly
 del neuron_links, neuron_np_synapses, neuron_nt_synapses
 
-# =============================================================================
-# 5. LOAD EXTERNAL METRIC DATASETS
-# =============================================================================
-print("Loading Peripheral system distances from Parquet...")
+# Load peripheral data from parquet file
+
 df_per = pd.read_parquet(PER_PARQUET, columns=["root_id", "distance_optic", "distance_olfactory"])
 df_per['root_id'] = df_per['root_id'].astype(str)
 
-# =============================================================================
-# 5b. HIGH PERFORMANCE GRAPH QUANTITIES ENGINES (WITH LOW-MEMORY APPROXIMATIONS)
-# =============================================================================
-print("Loading undirected connection file...")
+# Graph quantities
+
 df_und = pd.read_csv(UND_CSV, usecols=['neuron_id_1', 'neuron_id_2']).dropna()
 
 all_nodes = pd.concat([df_und['neuron_id_1'], df_und['neuron_id_2']]).unique()
 node_to_idx = {str(int(node)): idx for idx, node in enumerate(all_nodes)}
 idx_to_node = {idx: str(int(node)) for idx, node in enumerate(all_nodes)}
 
-print("Populating graph-tool unweighted architecture...")
 g = gt.Graph(directed=False)
 g.add_vertex(len(all_nodes))
 
@@ -157,18 +137,16 @@ tgt_indices = df_und['neuron_id_2'].astype(int).astype(str).map(node_to_idx).val
 edge_matrix = np.column_stack((src_indices, tgt_indices))
 g.add_edge_list(edge_matrix)
 
-del df_und, src_indices, tgt_indices, edge_matrix  # Clear RAM arrays immediately
+del df_und, src_indices, tgt_indices, edge_matrix
 
 num_v = g.num_vertices()
-print(f"C++ graph instantiated with {num_v} vertices and {g.num_edges()} edges.")
+print(f"graph made with {num_v} vertices and {g.num_edges()} edges.")
 
-# --- Executing Fast Compiled Graph Approximations ---
-print("Calculating local clustering coefficients (Exact C++)...")
+print("Calculating clustering...")
 vprop_clustering = gt.local_clustering(g)
 
-# FAST APPROXIMATION 1: Closeness approximation via iterative landmark shortest paths
-print("Calculating closeness centrality metrics (Low-Memory Pivot Approximation)...")
-np.random.seed(42)  # For reproducibility
+print("Calculating approximate closeness centrality using landmarks...")
+np.random.seed(42)
 landmark_indices = np.random.choice(num_v, size=min(1000, num_v), replace=False)
 
 sum_distances = np.zeros(num_v, dtype=np.float64)
@@ -184,25 +162,19 @@ closeness_array = np.zeros(num_v)
 valid_mask = sum_distances > 0
 closeness_array[valid_mask] = (len(landmark_indices) - 1) / sum_distances[valid_mask]
 
-del sum_distances  # Clear heavy closeness tracking array from memory
+del sum_distances
 
-# FAST APPROXIMATION 2: Run Brandes' path-tracer iteratively to prevent OOM Killer
-print("Calculating betweenness centrality metrics (Low-Memory Pivot Loop)...")
+print("Calculating approximate betweenness centrality...")
 
-# Initialize a blank VertexPropertyMap to store our accumulated betweenness scores
 vprop_betweenness = g.new_vertex_property("double")
 
-# Loop through pivots one by one so memory spikes never compound
-for pivot_idx in tqdm(landmark_indices, desc="Processing Betweenness Pivots"):
-    # Pass a SINGLE pivot as a list [pivot_idx] so graph-tool processes it in isolation
+for pivot_idx in tqdm(landmark_indices):
     single_bv, _ = gt.betweenness(g, pivots=[pivot_idx])
     
-    # Safe and correct way to accumulate the array data back into the main map
     vprop_betweenness.a += single_bv.a
-
-print("Extracting C++ property maps back to Pandas...")
+    
 graph_results = []
-for idx in tqdm(range(num_v), desc="Mapping Structural Metrics"):
+for idx in tqdm(range(num_v)):
     v = g.vertex(idx)
     graph_results.append({
         'root_id': idx_to_node[idx],
@@ -212,10 +184,7 @@ for idx in tqdm(range(num_v), desc="Mapping Structural Metrics"):
     })
 df_graph_metrics = pd.DataFrame(graph_results)
 
-# =============================================================================
-# 6. CONSOLIDATE AND BUILD FIG5 TABLE via LEFT JOIN
-# =============================================================================
-print("Merging matrices and enforcing strict column filtering...")
+# Combine data
 
 final_df = fig4_df.copy()
 final_df = final_df.merge(df_connectivity,  on='root_id', how='left')
@@ -243,9 +212,4 @@ desired_columns = [
 
 final_df = final_df[[col for col in desired_columns if col in final_df.columns]]
 
-# =============================================================================
-# 7. EXPORT RESULTS
-# =============================================================================
-print(f"Writing clean dataset registry out to: {OUT_CSV}")
 final_df.to_csv(OUT_CSV, index=False)
-print("Pipeline successful! Approximations built and saved cleanly to Linux filesystem.")
