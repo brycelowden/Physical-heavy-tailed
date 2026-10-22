@@ -8,11 +8,8 @@ from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.ticker import NullLocator
 from tqdm import tqdm
 
-# =============================================================================
-# 1. PARAMETERS & FILE CONFIGURATIONS
-# =============================================================================
-UND_CON_CSV = 'C:/Users/bryce/OneDrive/Desktop/Research/Heavy-Tailed CS/FAFB/Data/FlyWireUndCons.csv'
-OUT_FOLDER  = 'C:/Users/bryce/OneDrive/Desktop/Research/Heavy-Tailed CS/Figure Files/Figure 1/'
+UND_CON_CSV = '[...]'
+OUT_FOLDER  = '[...]'
 TOP_N = 9
 CHOSEN_N = 9
 
@@ -33,10 +30,6 @@ top_N_ids = (con_counts.nlargest(TOP_N).index.tolist())
 
 mm = 1 / 25.4
 
-# =============================================================================
-# 2. SINGLE NEURON CS DISTRIBUTIONS
-# =============================================================================
-
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial']
 plt.rcParams['font.size'] = 10
@@ -55,8 +48,6 @@ fig, axs = plt.subplots(3,3,figsize=(90 * mm, 90 * mm), constrained_layout = Tru
 flat_axs = axs.flatten()
 
 chosen_N_ids = top_N_ids.copy()
-
-#[top_N_ids[5],top_N_ids[8],top_N_ids[13],top_N_ids[14]]
 
 print(f'\nPlotting chosen {CHOSEN_N} neuron distributions...')
 
@@ -100,48 +91,35 @@ plt.close(fig)
 
 print(f'\nChosen {CHOSEN_N} neuron distributions saved.')
 
-#Of the top neurons, numbers 6, 9, 12, 13 appear the most heavy-tailed
+# Variance plot
 
-# =============================================================================
-# 3. REAL VS SHUFFLED CONNECTION VARIANCE
-# =============================================================================
-
-# Enable tqdm for pandas operations
 tqdm.pandas(desc="Shuffling & Computing Variances")
 
-# Colormap definition
 densitycolors = ['#ffffff', "#00A0CC", "#094553"]
 DEN_COLORMAP = LinearSegmentedColormap.from_list("customgradient2", densitycolors)
-
-print("\nComputing real vs. stochastically shuffled variance for all neurons...")
 
 def compute_real_and_shuffled_var(group):
     syn_counts = group['undirected_syn_count'].values
     k = len(syn_counts)
     
-    # Variance requires at least 2 connections
     if k < 2:
         return pd.Series({'real_var': np.nan, 'shuffled_var': np.nan})
     
     S = syn_counts.sum()
     
-    # 1. Real variance
     real_var = np.var(syn_counts, ddof=1)
     
-    # 2. Stochastic Shuffle
     shuffled_counts = np.random.multinomial(S, np.full(k, 1.0 / k))
     shuffled_var = np.var(shuffled_counts, ddof=1)
     
     return pd.Series({'real_var': real_var, 'shuffled_var': shuffled_var})
 
-# Group by neuron and perform shuffle using progress_apply
 neuron_variances = (
     df_long.groupby('neuron_id')
     .progress_apply(compute_real_and_shuffled_var)
     .reset_index()
 )
 
-# Filter out valid positive variances for log-scale plotting
 valid_mask = (neuron_variances['real_var'] > 0) & (neuron_variances['shuffled_var'] > 0)
 plot_stats = neuron_variances[valid_mask].copy()
 
@@ -152,18 +130,15 @@ var_min, var_max = 5e-1, 5e3
 x_edges = np.logspace(np.log10(var_min), np.log10(var_max), 100)
 y_edges = np.logspace(np.log10(var_min), np.log10(var_max), 100)
 
-# Compute 2D histogram raw counts
 counts, xedges, yedges = np.histogram2d(
     plot_stats['real_var'],       # X-axis: Real variance
     plot_stats['shuffled_var'],   # Y-axis: Shuffled variance
     bins=[x_edges, y_edges]
 )
 
-# Convert counts to true probability density (fraction of total neurons)
 total_neurons = len(plot_stats)
 density_matrix = counts / total_neurons
 
-# Mask zero-density bins so they render transparent/white
 density_matrix[counts < 1] = np.nan
 masked_density = np.ma.masked_invalid(density_matrix)
 
@@ -208,7 +183,6 @@ ax_var.tick_params(which='both', direction='out', bottom=True, left=True, top=Fa
 
 CAX_POS = [0.16, 0.85, 0.77 - 0.16, 0.035]
 
-# Dedicated vertical colorbar axes
 cax_var = fig_var.add_axes(CAX_POS)
 cbar_var = fig_var.colorbar(im, cax=cax_var, orientation="horizontal")
 
@@ -220,5 +194,3 @@ cbar_var.set_label('Density', labelpad=5)
 
 plt.savefig(os.path.join(OUT_FOLDER, 'shuffled_vs_real_variance_heatmap.svg'), format='svg', dpi=300)
 plt.close(fig_var)
-
-print(f"Variance comparison plot successfully saved to {OUT_FOLDER}")
