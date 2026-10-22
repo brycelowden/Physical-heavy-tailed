@@ -1,4 +1,4 @@
-UND_CSV = 'C:/Users/bryce/OneDrive/Desktop/Research/Heavy-Tailed CS/FAFB/Data/FlyWireUndCons.csv'
+UND_CSV = '[...]'
 
 import pandas as pd
 import numpy as np
