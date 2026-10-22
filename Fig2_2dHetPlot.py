@@ -8,7 +8,7 @@ from matplotlib.ticker import NullLocator
 from matplotlib.collections import LineCollection
 from scipy.stats import binned_statistic_2d
 
-SWEEP_CSV = '[...]' # Output of 2dHetSweep simulation
+SWEEP_CSV = '[...]' # Output of 'Fig2_2dHetPlotSimulations.py'
 OUTPUT_FOLD = '[...]'
 HET_COLORMAP = 'plasma'
 
