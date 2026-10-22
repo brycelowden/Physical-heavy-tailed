@@ -9,12 +9,11 @@ from matplotlib.collections import LineCollection
 from matplotlib.lines import Line2D
 from scipy.stats import binned_statistic_2d
 
-# =============================================================================
-# 1. PARAMETERS, CONFIGURATIONS, & INDEPENDENT SIZES
-# =============================================================================
-DATA_CSV     = 'C:/Users/bryce/OneDrive/Desktop/Research/Heavy-Tailed CS/FAFB/Figure 4/Fig4_NeuronData.csv'
-SIM_DATA_CSV = 'C:/Users/bryce/OneDrive/Desktop/Research/Heavy-Tailed CS/FAFB/Figure 2/Fig2_HetSweepResults.csv'
-OUTPUT_FOLD  = 'C:/Users/bryce/OneDrive/Desktop/Research/Heavy-Tailed CS/Figure Files/Figure 4/'
+# Setup
+
+DATA_CSV     = '[...]' # Neuron data 'Fig4_NeuronData.csv'
+SIM_DATA_CSV = '[...]' # Simulated neuron data 'Fig2_HetSweepResults.csv'
+OUTPUT_FOLD  = '[...]'
 
 densitycolors = ['#ffffff',"#4DBEDE","#094753"]
 DEN_COLORMAP = LinearSegmentedColormap.from_list("customgradient",densitycolors)
@@ -25,45 +24,36 @@ SIM_HEAT_RES_Y = 15
 SIM_HEAT_MIN_CON = 25
 NUM_LINES = 4               
 BIN_MIN = 25  
-LINE_WIDTH = 2.0  # Globally set the line thickness to 2.0 as requested
+LINE_WIDTH = 2.0 
 
 os.makedirs(OUTPUT_FOLD, exist_ok=True)
 
-# Millimeter conversion factor
 mm = 1 / 25.4  
 
-# --- INDEPENDENT HEATMAP GEOMETRY PROFILES ---
 HEATMAP_WIDTH_MM = 44.0
 SIM_HEATMAP_WIDTH_MM = 44.0
 VERTICAL_PADDING_MM = 5.0
 COLORBAR_LABEL_PADDING = 5
 
 SIZE_HEATMAP1 = (70 * mm, 70 * mm)
-
-# SIZE_HEATMAP2 = (70 * mm, 70 * mm)
-SIZE_HEATMAP2 = (40 * mm, 38 * mm)
+SIZE_HEATMAP2 = (70 * mm, 70 * mm)
 SIZE_HEATMAP_SIM = (56.5 * mm, 56.5 * mm)
 SIZE_SIM_LINE = (54.5 * mm, 56.5 / 2 * mm)
 SIZE_SIM_LINE_ENV = (56.5 * mm, 56.5 * mm)
 
-# --- INDEPENDENT LINE PLOT GEOMETRY PROFILES ---
 SIZE_LINE1        = (56.66 * mm, 60 * mm)  
 SIZE_MULTILINE    = (56.66 * mm, 60 * mm)
 
-# Strict relative internal layout tracker for heatmaps
-
-# HEATMAP_AXES_POS = [0.15, 0.15, 0.825, 0.675]
-HEATMAP_AXES_POS = [0.2, 0.2, 0.725, 0.525]
+HEATMAP_AXES_POS = [0.15, 0.15, 0.825, 0.675]
 SIM_HEATMAP_AXES_POS = [0.18, 0.17, 0.79, 0.61]
 
-# --- FIXED GEOMETRY POSITIONS FOR MULTILINE PLOTS ---
 MULTILINE_AXES_POS = [0.23, 0.1875, 0.7325, 0.6]
 
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial']
 plt.rcParams['font.size'] = 10
-plt.rcParams['axes.labelsize'] = 8 # 10    
-plt.rcParams['axes.titlesize'] = 8 # 10    
+plt.rcParams['axes.labelsize'] = 10   
+plt.rcParams['axes.titlesize'] = 10  
 plt.rcParams['figure.titlesize'] = 10     
 plt.rcParams['legend.fontsize'] = 9      
 plt.rcParams['legend.title_fontsize'] = 9
@@ -73,22 +63,18 @@ plt.rcParams['axes.linewidth'] = 0.5
 plt.rcParams['xtick.major.width'] = 0.5
 plt.rcParams['ytick.major.width'] = 0.5
 
-# Explicit Layout Matrix Bounds
 PLOT12_BINS_X, PLOT12_BINS_Y = 40, 40
 PLOT12_X_MIN, PLOT12_X_MAX = 25, 2000       
 PLOT12_Y_MIN, PLOT12_Y_MAX = 10, 5000    
 
-print("Loading consolidated neuron analysis dataset...")
 df = pd.read_csv(DATA_CSV)
 
-print("Loading parameter sweep results for simulated neurons...")
 sim_df = pd.read_csv(SIM_DATA_CSV)
 sim_df['branches_per_connection'] = sim_df['branches'] / sim_df['connections']
 
-# =============================================================================
-# 2. PLOT 1: 2D Density Heatmap
-# =============================================================================
-print("Processing Plot 1: 2D Density Heatmap...")
+# 2d density plot
+
+print("Plot 1: 2D Density Heatmap...")
 p1_df = df[(df['connections'] > 0) & (df['branches'] > 0)].dropna(subset=['connections', 'branches'])
 
 p1_x_edges = np.logspace(np.log10(PLOT12_X_MIN), np.log10(PLOT12_X_MAX), PLOT12_BINS_X + 1)
@@ -132,8 +118,7 @@ ax1.spines['top'].set_visible(True)
 ax1.spines['right'].set_visible(True)
 ax1.tick_params(which='both', direction='in', bottom=True, left=True, top=False, right=False)
 
-# [HEATMAP_AXES_POS[0], HEATMAP_AXES_POS[1] + HEATMAP_AXES_POS[3] + 0.015, HEATMAP_AXES_POS[2], 0.035]
-cax1 = fig1.add_axes([HEATMAP_AXES_POS[0], HEATMAP_AXES_POS[1] + HEATMAP_AXES_POS[3] + 0.015, HEATMAP_AXES_POS[2], 0.075])
+cax1 = fig1.add_axes([HEATMAP_AXES_POS[0], HEATMAP_AXES_POS[1] + HEATMAP_AXES_POS[3] + 0.015, HEATMAP_AXES_POS[2], 0.035])
 cbar1 = fig1.colorbar(im1, cax=cax1, orientation="horizontal")
 cax1.xaxis.set_ticks_position('top')
 cax1.xaxis.set_label_position('top')
@@ -144,11 +129,9 @@ cbar1.set_label('Density', labelpad=COLORBAR_LABEL_PADDING)
 plt.savefig(os.path.join(OUTPUT_FOLD, 'heatmap_1_density.svg'), format='svg', dpi=300)
 plt.close(fig1)
 
+# 2d het plot
 
-# =============================================================================
-# 3. PLOT 2: Average Heterogeneity Heatmap
-# =============================================================================
-print("Processing Plot 2: Average Heterogeneity Heatmap...")
+print("Plot 2: Average Heterogeneity Heatmap...")
 p2_df = df[(df['connections'] > 0) & (df['branches'] > 0)].dropna(subset=['connections', 'branches', 'heterogeneity'])
 
 res = binned_statistic_2d(
@@ -201,10 +184,6 @@ cbar2.set_label('Heterogeneity', labelpad=COLORBAR_LABEL_PADDING)
 plt.savefig(os.path.join(OUTPUT_FOLD, 'heatmap_2_heterogeneity.svg'), format='svg', dpi=300)
 plt.close(fig2)
 
-
-# =============================================================================
-# HELPER METHOD: Minimal Binned Envelope Plot with Simulated Model Overlay
-# =============================================================================
 def generate_minimal_line_plot(
     data, x_col, y_col, filename, x_limit_min, x_limit_max, target_fig_size, 
     sim_data=None, sim_y_col='het', sim_num_bins=15, sim_min_per_bin=3,
@@ -216,7 +195,6 @@ def generate_minimal_line_plot(
     if len(x_data) == 0:
         return
 
-    # --- 1. FLY BRAIN DATA PROCESSING (30 BINS DEFAULT) ---
     bins = np.logspace(np.log10(x_limit_min), np.log10(x_limit_max), num_bins + 1)
     bins = np.unique(bins)
     actual_num_bins = len(bins) - 1
@@ -241,11 +219,9 @@ def generate_minimal_line_plot(
     
     fig, ax = plt.subplots(figsize=target_fig_size, layout='constrained')
 
-    # --- 2. PLOT SIMULATED MODEL ENVELOPE (15 INDEPENDENT BINS, NO FILL) ---
     if sim_data is not None:
         filtered_sim = sim_data[(sim_data[x_col] >= x_limit_min) & (sim_data[x_col] <= x_limit_max)].copy()
-        if len(filtered_sim) > 0:
-            # Independent binning explicitly for simulation data (15 bins)
+
             sim_bins = np.logspace(np.log10(x_limit_min), np.log10(x_limit_max), sim_num_bins + 1)
             sim_bins = np.unique(sim_bins)
             sim_actual_bins = len(sim_bins) - 1
@@ -270,11 +246,9 @@ def generate_minimal_line_plot(
             
             valid_sim_mask = ~np.isnan(sim_x) & ~np.isnan(sim_lower) & ~np.isnan(sim_upper)
             
-            # Plot sharp black dashed envelope boundaries with zero fill
             ax.plot(sim_x[valid_sim_mask], sim_lower[valid_sim_mask], color='black', linestyle='--', linewidth=1.0, alpha=0.8, zorder=10)
             ax.plot(sim_x[valid_sim_mask], sim_upper[valid_sim_mask], color='black', linestyle='--', linewidth=1.0, alpha=0.8, zorder=10)
 
-    # --- 3. PLOT MAIN DATA SET (30 BINS) ---
     v_min = min(full_mean) if np.any(~np.isnan(full_mean)) else 0.3
     v_max = max(full_mean) if np.any(~np.isnan(full_mean)) else 0.8
     norm = Normalize(vmin=v_min, vmax=v_max)
@@ -302,18 +276,16 @@ def generate_minimal_line_plot(
             color=slice_color, alpha=0.33, edgecolor='none', zorder=2
         )
 
-    # --- 4. LEGEND CREATION (CUSTOM HANDLES WITH ROUNDED EDGES) ---
     if sim_data is not None:
-        # 1. Real Data Handle (Solid Line with Rounded Cap Edge)
+        
         fly_color = cmap(norm(np.nanmean(full_mean)))
         handle_fly = Line2D(
             [0], [0], 
             color=fly_color, 
             linewidth=LINE_WIDTH, 
-            solid_capstyle='round'  # Explicitly sets rounded ends
+            solid_capstyle='round' 
         )
         
-        # 2. Simulated Model Handle (Dashed Line with Rounded Cap Edge)
         handle_sim = Line2D(
             [0], [0], 
             color='black', 
@@ -321,13 +293,12 @@ def generate_minimal_line_plot(
             linestyle='--'
         )
 
-        # Explicitly pair handles and label strings separately from the handle creation
         ax.legend(
             handles=[handle_fly, handle_sim],
             labels=['Fly brain', 'Model'],
             loc='upper left',
             frameon=False,
-            handlelength=2.0,       # Slightly extended line length to highlight rounded ends
+            handlelength=2.0,   
             handletextpad=0.6
         )
 
@@ -345,10 +316,6 @@ def generate_minimal_line_plot(
     plt.savefig(os.path.join(OUTPUT_FOLD, filename), format='svg')
     plt.close(fig)
 
-
-# =============================================================================
-# HELPER METHOD: Multi-line Quantile Binned Layout Engine
-# =============================================================================
 def generate_multiline_quantile_plot(data, x_col, y_col, split_col, filename, x_limit_min, x_limit_max, num_bins=30, min_neurons_per_bin=25, xlabel='', ylabel='', cbar_title='', is_sim=False):
     clean_data = data[(data[x_col] > 0) & (data[split_col] > 0)].dropna(subset=[x_col, y_col, split_col]).copy()
     
@@ -415,12 +382,8 @@ def generate_multiline_quantile_plot(data, x_col, y_col, split_col, filename, x_
     plt.savefig(os.path.join(OUTPUT_FOLD, filename), format='svg')
     plt.close(fig)
 
-
-# =============================================================================
-# NEW HELPER METHOD: Simulation Parameter Sweep Single-Line Envelope Visualizer
-# =============================================================================
 def generate_sim_single_line_plot(data, x_col, y_col, filename, xlabel='', ylabel='', target_fig_size=SIZE_LINE1):
-    # Group by exact grid positions of x_col and calculate statistics
+
     stats = data.groupby(x_col)[y_col].agg(['mean', 'std']).reset_index()
     stats = stats.sort_values(by=x_col)
     
@@ -435,10 +398,8 @@ def generate_sim_single_line_plot(data, x_col, y_col, filename, xlabel='', ylabe
     
     fixed_color = "#4DBEDE"
     
-    # Plot standard deviation envelope profile
     ax.fill_between(x_vals, lower_bound, upper_bound, color=fixed_color, alpha=0.33, edgecolor='none', zorder=2)
     
-    # Plot explicit single mean line trajectory
     ax.plot(x_vals, mean_vals, color=fixed_color, linewidth=LINE_WIDTH, zorder=3)
         
     ax.set_xscale('log')
@@ -447,7 +408,6 @@ def generate_sim_single_line_plot(data, x_col, y_col, filename, xlabel='', ylabe
     ax.set_ylabel(ylabel)
     ax.set_xlim(data[x_col].min(), data[x_col].max())
     
-    # Avoid zero or negative bounding limits on a logarithmic vertical axis mapping
     valid_lower = lower_bound[lower_bound > 0]
     y_min = valid_lower.min() if len(valid_lower) > 0 else data[y_col].min() * 0.9
     ax.set_ylim(y_min, data[y_col].max() * 1.1)
@@ -461,10 +421,9 @@ def generate_sim_single_line_plot(data, x_col, y_col, filename, xlabel='', ylabe
     plt.close(fig)
 
 
-# =============================================================================
-# 4. LINE PLOT 3: Heterogeneity vs Branches per Connection (With Model Overlay)
-# =============================================================================
-print("Processing Plot 3: Heterogeneity vs Branches per Connection (With Model Overlay)...")
+# Plot 3: het vs branches per connection
+
+print("Plot 3: Heterogeneity vs Branches per Connection (With Model Overlay)...")
 p3_df = df[(df['branches_per_connection'] > 0) & (df['heterogeneity'] >= 0)].copy()
 p3_df = p3_df.dropna(subset=['branches_per_connection', 'heterogeneity'])
 
@@ -484,10 +443,8 @@ generate_minimal_line_plot(
     ylabel='Heterogeneity'
 )
 
+# Plot 4: het vs branches multiline
 
-# =============================================================================
-# 5. NEW MULTILINE PLOT 4: Heterogeneity vs Branches (Binned by Connections)
-# =============================================================================
 print("Processing Plot 4: Heterogeneity vs Branches (Multiline Quantile Binned)...")
 generate_multiline_quantile_plot(
     data=df,
@@ -505,9 +462,8 @@ generate_multiline_quantile_plot(
 )
 
 
-# =============================================================================
-# 6. NEW MULTILINE PLOT 5: Heterogeneity vs Connections (Binned by Branches)
-# =============================================================================
+# Plot 5: het vs cons multiline
+
 print("Processing Plot 5: Heterogeneity vs Connections (Multiline Quantile Binned)...")
 generate_multiline_quantile_plot(
     data=df,
@@ -525,28 +481,23 @@ generate_multiline_quantile_plot(
 )
 
 
-# =============================================================================
-# ADDITION: SIMULATED NEURON PLOTS (6 VISUALS)
-# =============================================================================
+# Simulated neuron plots
 
-# --- SIM PLOT 1: Branches vs rb with standard deviation envelope (Fixed Color) ---
-print("Processing Sim Plot 1: Branch count vs rb (Single-Line Envelope)...")
+print("Sim Plot 1: Branch count vs rb...")
 generate_sim_single_line_plot(
     data=sim_df, x_col='rb', y_col='branches',
     filename='sim_plot_1_branches_vs_rb.svg',
     xlabel='Branching rate $r_b$', ylabel='Branches', target_fig_size=SIZE_SIM_LINE
 )
 
-# --- SIM PLOT 2: Connections vs rt with standard deviation envelope (Fixed Color) ---
-print("Processing Sim Plot 2: Connection count vs rt (Single-Line Envelope)...")
+print("Sim Plot 2: Connection count vs rt...")
 generate_sim_single_line_plot(
     data=sim_df, x_col='rt', y_col='connections',
     filename='sim_plot_2_connections_vs_rt.svg',
     xlabel='Transition rate $r_t$', ylabel='Connections', target_fig_size=SIZE_SIM_LINE
 )
 
-# --- SIM PLOT 3: 2D Avg Heterogeneity Heatmap for Simulation ---
-print("Processing Sim Plot 3: 2D Heterogeneity Heatmap...")
+print("Sim Plot 3: 2D Heterogeneity Heatmap...")
 sim_x_edges = np.logspace(np.log10(SIM_HEAT_MIN_CON), np.log10(sim_df['connections'].max()), SIM_HEAT_RES_X + 1)
 sim_y_edges = np.logspace(np.log10(sim_df['branches'].min()), np.log10(sim_df['branches'].max()), SIM_HEAT_RES_Y + 1)
 
@@ -583,8 +534,7 @@ cbar_sim3.set_label('Heterogeneity', labelpad=COLORBAR_LABEL_PADDING)
 plt.savefig(os.path.join(OUTPUT_FOLD, 'sim_plot_3_heatmap_heterogeneity.svg'), format='svg', dpi=300)
 plt.close(fig_sim3)
 
-# --- SIM PLOT 4: Het vs Connections (Multiline Quantile Binned) ---
-print("Processing Sim Plot 4: Het vs Connections (Multiline Quartile)...")
+print("Sim Plot 4: Het vs Connections (Multiline)...")
 generate_multiline_quantile_plot(
     data=sim_df, x_col='connections', y_col='het', split_col='branches',
     filename='sim_plot_4_het_vs_connections.svg',
@@ -594,8 +544,7 @@ generate_multiline_quantile_plot(
     is_sim=True
 )
 
-# --- SIM PLOT 5: Het vs Branches (Multiline Quantile Binned) ---
-print("Processing Sim Plot 5: Het vs Branches (Multiline Quartile)...")
+print("Sim Plot 5: Het vs Branches (Multiline)...")
 generate_multiline_quantile_plot(
     data=sim_df, x_col='branches', y_col='het', split_col='connections',
     filename='sim_plot_5_het_vs_branches.svg',
@@ -605,13 +554,10 @@ generate_multiline_quantile_plot(
     is_sim=True
 )
 
-# --- SIM PLOT 6: Het vs Branches per Connection Envelope ---
-print("Processing Sim Plot 6: Het vs Branches per Connection...")
+print("Sim Plot 6: Het vs Branches per Connection...")
 generate_minimal_line_plot(
     data=sim_df, x_col='branches_per_connection', y_col='het', filename='sim_plot_6_het_vs_bpc.svg',
     x_limit_min=0.1, x_limit_max=5.0,
     target_fig_size=SIZE_SIM_LINE_ENV, num_bins=15, min_neurons_per_bin=3,
     xlabel='Branches per connection', ylabel='Heterogeneity'
 )
-
-print(f"Success! All files saved to: {OUTPUT_FOLD}")
