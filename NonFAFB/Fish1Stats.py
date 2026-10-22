@@ -1,4 +1,8 @@
 UND_CSV = '[...]' # Undirected proofread edges CSV
+                  # CSV was created using the programmatic Fish1 access found here:
+                  # https://fish1-release.storage.googleapis.com/programmatic.html
+                  # Only connections between proofread cells and those with somas 
+                  # as of July 1 2026 were included in this analysis. 
 
 import pandas as pd
 import numpy as np
