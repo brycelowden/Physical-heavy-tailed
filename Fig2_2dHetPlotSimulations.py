@@ -9,7 +9,7 @@ import pandas as pd
 from collections import Counter, defaultdict
 from scipy.special import zeta
 
-OUT_CSV = 'C:/Users/bryce/OneDrive/Desktop/Research/Heavy-Tailed CS/FAFB/Figure 2/Fig2_HetSweepResults.csv'
+OUT_CSV = '[...]'
 
 print('Number of neurons?')
 N = int(input('>'))
@@ -45,21 +45,14 @@ def calculate_heterogeneity_prob(values, probabilities):
     v = np.asarray(values, dtype=float)
     p = np.asarray(probabilities, dtype=float)
 
-    # Sort values in ascending order and rearrange probabilities to match -> O(n log n)
     sort_idx = np.argsort(v)
     v = v[sort_idx]
     p = p[sort_idx]
 
-    #Normalize probabilities
-
-    # Calculate Expected Value E[s] (equivalent to the mean <s>)
     expected_val = np.sum(p * v)
 
-    # Compute Cumulative Probabilities: P_i = sum_{j=1}^i p_j
-    # np.cumsum provides [P_1, P_2, ..., P_n]
     cum_p = np.cumsum(p)
 
-    # Calculate E[|s - s'|] using the cumulative weight sorting shortcut:
     # E[|s - s'|] = 2 * sum_{i=1}^n (p_i * v_i * (2 * P_i - p_i - 1))
     expected_abs_diff = 2 * np.sum(p * v * (2 * cum_p - p - 1))
 
@@ -69,10 +62,6 @@ def calculate_heterogeneity_prob(values, probabilities):
     return h
 
 def run_simulation_gillespie(N, S, rb, rt, rs, trials):
-    """
-    Simulates the branching random walk using the continuous-time 
-    Gillespie Algorithm until exactly S unique connections are established.
-    """
 
     global_strength_counts = Counter()
     branch_counts = list()
@@ -89,7 +78,6 @@ def run_simulation_gillespie(N, S, rb, rt, rs, trials):
 
         while True:
 
-            # 1. Calculate the active propensities per node
             active_nodes = list(occupants.keys())
             active_counts = np.array([occupants[node] for node in active_nodes], dtype=int)
             
@@ -97,13 +85,11 @@ def run_simulation_gillespie(N, S, rb, rt, rs, trials):
             node_trans_propensities = active_counts * rt
             node_syn_propensities = active_counts * rs
             
-            # Global propensity sums
             total_b = node_branch_propensities.sum()
             total_t = node_trans_propensities.sum()
             total_s = node_syn_propensities.sum()
             R_total = total_b + total_t + total_s
                 
-            # 3. Determine WHICH type of event happens and WHERE it happens
             all_propensities = np.concatenate([
                 node_branch_propensities, 
                 node_trans_propensities, 
@@ -118,8 +104,6 @@ def run_simulation_gillespie(N, S, rb, rt, rs, trials):
             phase_idx = event_idx // num_nodes
             node_idx = event_idx % num_nodes
             chosen_node = active_nodes[node_idx]
-            
-            # 4. Execute the single continuous-time event
 
             # Branch
             if phase_idx == 0:
@@ -129,7 +113,7 @@ def run_simulation_gillespie(N, S, rb, rt, rs, trials):
             elif phase_idx == 1:
                 occupants[chosen_node] -= 1
                 
-                #Discard nodes with no tips to avoid clutter
+                #Discard nodes with no tips
                 if occupants[chosen_node] <= 0:
                     del occupants[chosen_node]
                 
@@ -139,20 +123,14 @@ def run_simulation_gillespie(N, S, rb, rt, rs, trials):
 
             # Synapse    
             elif phase_idx == 2:
-                # Check if this node is gaining its very first synapse
-                # Searching for chosen_node initializes it with value 0
 
                 strengths[chosen_node] += 1
                 num_syns += 1
 
-                # Stop the trial immediately the moment our connection goal is met
                 if num_syns >= S:
                     break
 
-        # Save all non-zero synapse values from this trial run
         global_strength_counts.update(strengths.values())
-
-        # Save branch/con count for this trial run
 
         # Each tip besides the first represents a branch event
         branch_counts.append(sum(occupants.values())-1)
