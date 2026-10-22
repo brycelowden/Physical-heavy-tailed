@@ -12,7 +12,7 @@ MIN_CON = 25
 
 CON_CSV    = '[...]' # Undirected FAFB connectivity CSV
 SWC_FOLDER = '[...]' # Folder containing FAFB SWC neuron skeletons
-OUTPUT_CSV = '[...]'
+OUTPUT_CSV = '[...]' # Output file 'Fig4_NeuronData.csv'
 
 # Morphology
 
