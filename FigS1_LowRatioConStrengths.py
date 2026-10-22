@@ -34,25 +34,18 @@ def theory(rb,rt,rs,s):
     return c*(1+alpha * s)**(-1 * gamma)
 
 def run_simulation_gillespie(N, S, rb, rt, rs, trials):
-    """
-    Simulates the branching random walk using the continuous-time 
-    Gillespie Algorithm until exactly S unique connections are established.
-    """
 
     global_strength_counts = Counter()
 
     for k in range(trials):
         current_time = 0.0
         num_syns = 0
-        
-        # State tracking: { node_index: count }
-        # Every trial begins with exactly 1 walker at a root node (node 0)
+
         occupants = {0: 1}
         strengths = defaultdict(int)
 
         while True:
 
-            # 1. Calculate the active propensities per node
             active_nodes = list(occupants.keys())
             active_counts = np.array([occupants[node] for node in active_nodes], dtype=int)
             
@@ -60,13 +53,11 @@ def run_simulation_gillespie(N, S, rb, rt, rs, trials):
             node_trans_propensities = active_counts * rt
             node_syn_propensities = active_counts * rs
             
-            # Global propensity sums
             total_b = node_branch_propensities.sum()
             total_t = node_trans_propensities.sum()
             total_s = node_syn_propensities.sum()
             R_total = total_b + total_t + total_s
                 
-            # 3. Determine WHICH type of event happens and WHERE it happens
             all_propensities = np.concatenate([
                 node_branch_propensities, 
                 node_trans_propensities, 
@@ -81,8 +72,6 @@ def run_simulation_gillespie(N, S, rb, rt, rs, trials):
             phase_idx = event_idx // num_nodes
             node_idx = event_idx % num_nodes
             chosen_node = active_nodes[node_idx]
-            
-            # 4. Execute the single continuous-time event
 
             # Branch
             if phase_idx == 0:
@@ -92,7 +81,7 @@ def run_simulation_gillespie(N, S, rb, rt, rs, trials):
             elif phase_idx == 1:
                 occupants[chosen_node] -= 1
                 
-                #Discard nodes with no tips to avoid clutter
+                #Discard nodes with no tips
                 if occupants[chosen_node] <= 0:
                     del occupants[chosen_node]
                 
@@ -102,17 +91,13 @@ def run_simulation_gillespie(N, S, rb, rt, rs, trials):
 
             # Synapse    
             elif phase_idx == 2:
-                # Check if this node is gaining its very first synapse
-                # Searching for chosen_node initializes it with value 0
 
                 strengths[chosen_node] += 1
                 num_syns += 1
 
-                # Stop the trial immediately the moment our connection goal is met
                 if num_syns >= S:
                     break
 
-        # Save all non-zero synapse values from this trial run
         global_strength_counts.update(strengths.values())
         print(f"Done with trial {k+1}/{trials} | Synapses made: {num_syns}", end='\r')
 
@@ -139,11 +124,8 @@ for i in range(NUM_PLOTS):
 
 print('\nDone with simulations')
 
-# Plot of connection strength versus probability
-# 1. Define the millimeter conversion factor
-mm = 1 / 25.4  # 1 mm in inches
+mm = 1 / 25.4
 
-# 2. Set global style
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial']
 plt.rcParams['font.size'] = 10
@@ -179,7 +161,7 @@ axs[0].legend(frameon = False, loc='upper right')
 fig.supxlabel('Synapses per connection', fontsize=10)
 fig.supylabel('Probability', fontsize=10)
 
-plt.savefig('C:/Users/bryce/OneDrive/Desktop/Research/Heavy-Tailed CS/Figure Files/Figure S1/QuadConStrengthLowRatio.svg')
+plt.savefig('[...]')
 
 #For quad plot in figure S1,
 
