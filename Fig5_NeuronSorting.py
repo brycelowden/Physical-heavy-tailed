@@ -115,7 +115,7 @@ df_connectivity = pd.DataFrame(connectivity_results)
 
 del neuron_links, neuron_np_synapses, neuron_nt_synapses
 
-# Load peripheral data from parquet file
+# Load periphery data from parquet file
 
 df_per = pd.read_parquet(PER_PARQUET, columns=["root_id", "distance_optic", "distance_olfactory"])
 df_per['root_id'] = df_per['root_id'].astype(str)
