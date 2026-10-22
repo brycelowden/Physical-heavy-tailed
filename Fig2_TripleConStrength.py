@@ -51,21 +51,14 @@ def calculate_heterogeneity_prob(values, probabilities):
     v = np.asarray(values, dtype=float)
     p = np.asarray(probabilities, dtype=float)
 
-    # Sort values in ascending order and rearrange probabilities to match -> O(n log n)
     sort_idx = np.argsort(v)
     v = v[sort_idx]
     p = p[sort_idx]
 
-    #Normalize probabilities
-
-    # Calculate Expected Value E[s] (equivalent to the mean <s>)
     expected_val = np.sum(p * v)
 
-    # Compute Cumulative Probabilities: P_i = sum_{j=1}^i p_j
-    # np.cumsum provides [P_1, P_2, ..., P_n]
     cum_p = np.cumsum(p)
 
-    # Calculate E[|s - s'|] using the cumulative weight sorting shortcut:
     # E[|s - s'|] = 2 * sum_{i=1}^n (p_i * v_i * (2 * P_i - p_i - 1))
     expected_abs_diff = 2 * np.sum(p * v * (2 * cum_p - p - 1))
 
@@ -75,10 +68,6 @@ def calculate_heterogeneity_prob(values, probabilities):
     return h
 
 def run_simulation_gillespie(N, S, rb, rt, rs, trials):
-    """
-    Simulates the branching random walk using the continuous-time 
-    Gillespie Algorithm until exactly S unique connections are established.
-    """
 
     global_strength_counts = Counter()
 
@@ -86,14 +75,11 @@ def run_simulation_gillespie(N, S, rb, rt, rs, trials):
         current_time = 0.0
         num_syns = 0
         
-        # State tracking: { node_index: count }
-        # Every trial begins with exactly 1 walker at a root node (node 0)
         occupants = {0: 1}
         strengths = defaultdict(int)
 
         while True:
 
-            # 1. Calculate the active propensities per node
             active_nodes = list(occupants.keys())
             active_counts = np.array([occupants[node] for node in active_nodes], dtype=int)
             
@@ -101,13 +87,11 @@ def run_simulation_gillespie(N, S, rb, rt, rs, trials):
             node_trans_propensities = active_counts * rt
             node_syn_propensities = active_counts * rs
             
-            # Global propensity sums
             total_b = node_branch_propensities.sum()
             total_t = node_trans_propensities.sum()
             total_s = node_syn_propensities.sum()
             R_total = total_b + total_t + total_s
                 
-            # 3. Determine WHICH type of event happens and WHERE it happens
             all_propensities = np.concatenate([
                 node_branch_propensities, 
                 node_trans_propensities, 
@@ -122,8 +106,6 @@ def run_simulation_gillespie(N, S, rb, rt, rs, trials):
             phase_idx = event_idx // num_nodes
             node_idx = event_idx % num_nodes
             chosen_node = active_nodes[node_idx]
-            
-            # 4. Execute the single continuous-time event
 
             # Branch
             if phase_idx == 0:
@@ -133,7 +115,7 @@ def run_simulation_gillespie(N, S, rb, rt, rs, trials):
             elif phase_idx == 1:
                 occupants[chosen_node] -= 1
                 
-                #Discard nodes with no tips to avoid clutter
+                #Discard nodes with no tips
                 if occupants[chosen_node] <= 0:
                     del occupants[chosen_node]
                 
@@ -143,17 +125,13 @@ def run_simulation_gillespie(N, S, rb, rt, rs, trials):
 
             # Synapse    
             elif phase_idx == 2:
-                # Check if this node is gaining its very first synapse
-                # Searching for chosen_node initializes it with value 0
 
                 strengths[chosen_node] += 1
                 num_syns += 1
-
-                # Stop the trial immediately the moment our connection goal is met
+                
                 if num_syns >= S:
                     break
 
-        # Save all non-zero synapse values from this trial run
         global_strength_counts.update(strengths.values())
         print(f"Done with trial {k+1}/{trials} | Synapses made: {num_syns}", end='\r')
 
@@ -180,32 +158,8 @@ for i in range(NUM_PLOTS):
 
 print('\nDone with simulations')
 
-#Trimming outliers
-maxPlotInd = list()
+mm = 1 / 25.4 
 
-"""
-for i in range(NUM_PLOTS):
-    theoryXvals = np.logspace(np.log10(1),np.log10(10**4),1000)
-    cutoff = 1
-    while theory(rb=rb,rt=rts[i],rs=rs,s=cutoff)>=min(probabilities[i]):
-        cutoff += 1
-    
-    cutoff *= 10
-
-    ind = 0
-    length = len(unique_strengths[i])
-
-    while (ind < length - 1) & (unique_strengths[i][ind] < cutoff):
-        ind += 1
-    
-    maxPlotInd.append(ind)
-"""
-
-# Plot of connection strength versus probability
-# 1. Define the millimeter conversion factor
-mm = 1 / 25.4  # 1 mm in inches
-
-# 2. Set global style
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial']
 plt.rcParams['font.size'] = 10
@@ -226,7 +180,6 @@ colors = ["#9c38e3ff",'#d96171ff','#f8cf34ff']
 
 for idx,ax in enumerate(axs):
     theoryXvals = np.logspace(np.log10(1),np.log10(10**4),1000)
-    #ax.scatter(unique_strengths[idx][:maxPlotInd[idx]],probabilities[idx][:maxPlotInd[idx]], color = colors[idx],s = 49/2,clip_on=False, zorder=10,label = 'Numeric')
     ax.scatter(unique_strengths[idx],probabilities[idx], color = colors[idx],s = 49/2,clip_on=False, zorder=10,label = 'Numeric')
     ax.plot(theoryXvals,theory(rb=rb,rt=rts[idx],rs=rs,s=theoryXvals),color = "#000000", linewidth = 2,solid_capstyle='round',clip_on=True,zorder=20,label = 'Analytic')
     ax.set_xscale('log')
@@ -241,7 +194,7 @@ axs[0].legend(frameon = False, loc='upper right')
 fig.supxlabel('Synapses per connection', fontsize=10)
 fig.supylabel('Probability', fontsize=10)
 
-plt.savefig('C:/Users/bryce/OneDrive/Desktop/Research/Heavy-Tailed CS/Figure Files/Figure 2/TripleConStrength_MaxSyn.svg')
+plt.savefig('[...]')
 
 #For triple plot in figure 2, use the following values:
 
