@@ -8,7 +8,6 @@ from tqdm import tqdm
 # Generates the following neuron-level quantities: 
 # 'neuropil','reciprocity','neurotransmitter_type','distance_olfactory','distance_optic','clustering_coefficient','closeness_centrality','betweenness_centrality'
 
-# Import graph-tool utilities
 import graph_tool.all as gt
 
 BASE_DIR    = '[...]'
