@@ -7,11 +7,10 @@ from matplotlib.colors import LogNorm, Normalize, LinearSegmentedColormap
 from matplotlib.ticker import NullLocator
 from scipy.stats import binned_statistic_2d
 
-# =============================================================================
-# 1. PARAMETERS, CONFIGURATIONS, & INDEPENDENT SIZES
-# =============================================================================
-DATA_CSV    = 'C:/Users/bryce/OneDrive/Desktop/Research/Heavy-Tailed CS/FAFB/Figure 4/Fig4_NeuronData.csv'
-OUTPUT_FOLD = 'C:/Users/bryce/OneDrive/Desktop/Research/Heavy-Tailed CS/Figure Files/Figure S4/'
+# Setup
+
+DATA_CSV    = '[...]' # Use 'Fig4_NeuronData.csv'
+OUTPUT_FOLD = '[...]'
 
 densitycolors = ['#ffffff', "#4DBEDE", "#094753"]
 DEN_COLORMAP = LinearSegmentedColormap.from_list("customgradient", densitycolors)
@@ -22,7 +21,6 @@ COLORBAR_LABEL_PADDING = 5
 os.makedirs(OUTPUT_FOLD, exist_ok=True)
 mm = 1 / 25.4  
 
-# Match Figure 4 geometry templates
 SIZE_HEATMAP = (60 * mm, 70 * mm)
 SIZE_LINE = (60 * mm, 70 * mm)
 HEATMAP_AXES_POS = [0.18, 0.15, 0.795, 0.67]
@@ -41,27 +39,21 @@ plt.rcParams['axes.linewidth'] = 0.5
 plt.rcParams['xtick.major.width'] = 0.5
 plt.rcParams['ytick.major.width'] = 0.5
 
-# Defining explicit bounds for Length (X) vs Branches (Y)
 PLOT_BINS_X, PLOT_BINS_Y = 40, 40
-PLOT_X_MIN, PLOT_X_MAX = 0.1, 10.0      # Length in mm range bound
-PLOT_Y_MIN, PLOT_Y_MAX = 10, 5000       # Branches range bound
+PLOT_X_MIN, PLOT_X_MAX = 0.1, 10.0    
+PLOT_Y_MIN, PLOT_Y_MAX = 10, 5000   
 
-print("Loading consolidated neuron dataset...")
 df = pd.read_csv(DATA_CSV)
 
-# Create tracking metric for the line plot
 df['branches_per_length'] = df['branches'] / df['length']
 
-# Ensure valid rows exist for density and heterogeneity metrics mapping
 clean_df = df[(df['length'] > 0) & (df['branches'] > 0)].dropna(subset=['length', 'branches'])
 
 x_edges = np.logspace(np.log10(PLOT_X_MIN), np.log10(PLOT_X_MAX), PLOT_BINS_X + 1)
 y_edges = np.logspace(np.log10(PLOT_Y_MIN), np.log10(PLOT_Y_MAX), PLOT_BINS_Y + 1)
 
-# =============================================================================
-# SUPP PLOT 1: 2D Density Heatmap (Length vs Branches)
-# =============================================================================
-print("Processing Supp Plot 1: 2D Density Heatmap...")
+
+print("Plot 1: 2D Density Heatmap...")
 counts, xedges, yedges = np.histogram2d(
     clean_df['length'], clean_df['branches'],
     bins=[x_edges, y_edges]
@@ -79,7 +71,6 @@ fig1, ax1 = plt.subplots(figsize=SIZE_HEATMAP)
 ax1.set_position(HEATMAP_AXES_POS)
 ax1.set_facecolor('white')
 
-# Notice the appended .T to safely correct grid orientation mismatching maps
 im1 = ax1.pcolormesh(
     xedges, yedges, masked_density.T,
     cmap=DEN_COLORMAP,
@@ -108,10 +99,7 @@ cbar1.set_label('Density', labelpad=COLORBAR_LABEL_PADDING)
 plt.savefig(os.path.join(OUTPUT_FOLD, 'supp_heatmap_1_density.svg'), format='svg', dpi=300)
 plt.close(fig1)
 
-# =============================================================================
-# SUPP PLOT 2: Average Heterogeneity Heatmap (Length vs Branches)
-# =============================================================================
-print("Processing Supp Plot 2: Average Heterogeneity Heatmap...")
+print("Plot 2: Average Heterogeneity Heatmap...")
 p2_df = clean_df.dropna(subset=['heterogeneity'])
 
 res = binned_statistic_2d(
@@ -158,17 +146,13 @@ cbar2.set_label('Heterogeneity', labelpad=COLORBAR_LABEL_PADDING)
 plt.savefig(os.path.join(OUTPUT_FOLD, 'supp_heatmap_2_heterogeneity.svg'), format='svg', dpi=300)
 plt.close(fig2)
 
-# =============================================================================
-# SUPP PLOT 3: Heterogeneity vs Branches per Length Envelope Plot
-# =============================================================================
-print("Processing Supp Plot 3: Heterogeneity vs Branches per Length...")
+print("Plot 3: Heterogeneity vs Branches per Length...")
 p3_df = df[(df['branches_per_length'] > 0) & (df['heterogeneity'] >= 0)].dropna(subset=['branches_per_length', 'heterogeneity']).copy()
 
-x_limit_min, x_limit_max = 40.0, 500.0   # Branches per mm window boundaries
+x_limit_min, x_limit_max = 40.0, 500.0
 num_bins = 30
 min_neurons_per_bin = 25
 
-# Setup logarithmic bins tracking horizontal parameters
 line_bins = np.logspace(np.log10(x_limit_min), np.log10(x_limit_max), num_bins + 1)
 line_bins = np.unique(line_bins)
 actual_num_bins = len(line_bins) - 1
@@ -193,11 +177,9 @@ upper_bound = full_mean + full_std
 
 fig3, ax3 = plt.subplots(figsize=SIZE_LINE, layout='constrained')
 
-# Extract exact hexadecimal code or RGBA tracking configuration for plasma(0.5)
 plasma_cmap = mpl.colormaps['plasma']
 fixed_color = plasma_cmap(0.5)
 
-# Render standard deviation fill profiles
 for i in range(len(full_x) - 1):
     if np.isnan(full_mean[i]) or np.isnan(full_mean[i+1]):
         continue
@@ -206,7 +188,6 @@ for i in range(len(full_x) - 1):
         color=fixed_color, alpha=0.33, edgecolor='none', zorder=2
     )
 
-# Render crisp vector trendline path overlay
 ax3.plot(full_x, full_mean, color=fixed_color, linewidth=LINE_WIDTH, solid_capstyle='round', zorder=3)
 
 ax3.set_xscale('log')
@@ -221,5 +202,3 @@ ax3.spines['right'].set_visible(False)
 
 plt.savefig(os.path.join(OUTPUT_FOLD, 'supp_line_plot_branches_per_length.svg'), format='svg')
 plt.close(fig3)
-
-print(f"Success! Supplemental figure files saved to: {OUTPUT_FOLD}")
