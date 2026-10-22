@@ -11,7 +11,7 @@ import igraph as ig
 from collections import Counter, defaultdict
 from scipy.special import zeta
 
-OUT_SVG = 'C:/Users/bryce/OneDrive/Desktop/Research/Heavy-Tailed CS/Figure Files/Figure S2/FigS2_RandomGraph.svg'
+OUT_SVG = '[...]'
 
 print('Number of neurons?')
 N = int(input('>'))
@@ -37,21 +37,14 @@ def calculate_heterogeneity_prob(values, probabilities):
     v = np.asarray(values, dtype=float)
     p = np.asarray(probabilities, dtype=float)
 
-    # Sort values in ascending order and rearrange probabilities to match -> O(n log n)
     sort_idx = np.argsort(v)
     v = v[sort_idx]
     p = p[sort_idx]
 
-    #Normalize probabilities
-
-    # Calculate Expected Value E[s] (equivalent to the mean <s>)
     expected_val = np.sum(p * v)
 
-    # Compute Cumulative Probabilities: P_i = sum_{j=1}^i p_j
-    # np.cumsum provides [P_1, P_2, ..., P_n]
     cum_p = np.cumsum(p)
 
-    # Calculate E[|s - s'|] using the cumulative weight sorting shortcut:
     # E[|s - s'|] = 2 * sum_{i=1}^n (p_i * v_i * (2 * P_i - p_i - 1))
     expected_abs_diff = 2 * np.sum(p * v * (2 * cum_p - p - 1))
 
@@ -61,25 +54,18 @@ def calculate_heterogeneity_prob(values, probabilities):
     return h
 
 def run_simulation_gillespie(N, S, rb, rt, rs, trials):
-    """
-    Simulates the branching random walk using the continuous-time 
-    Gillespie Algorithm until exactly S unique connections are established.
-    """
-
+    
     global_strength_counts = Counter()
 
     for k in range(trials):
         current_time = 0.0
         num_syns = 0
-        
-        # State tracking: { node_index: count }
-        # Every trial begins with exactly 1 walker at a root node (node 0)
+
         occupants = {0: 1}
         strengths = defaultdict(int)
 
         while True:
 
-            # 1. Calculate the active propensities per node
             active_nodes = list(occupants.keys())
             active_counts = np.array([occupants[node] for node in active_nodes], dtype=int)
             
@@ -87,13 +73,11 @@ def run_simulation_gillespie(N, S, rb, rt, rs, trials):
             node_trans_propensities = active_counts * rt
             node_syn_propensities = active_counts * rs
             
-            # Global propensity sums
             total_b = node_branch_propensities.sum()
             total_t = node_trans_propensities.sum()
             total_s = node_syn_propensities.sum()
             R_total = total_b + total_t + total_s
                 
-            # 3. Determine WHICH type of event happens and WHERE it happens
             all_propensities = np.concatenate([
                 node_branch_propensities, 
                 node_trans_propensities, 
@@ -109,8 +93,6 @@ def run_simulation_gillespie(N, S, rb, rt, rs, trials):
             node_idx = event_idx % num_nodes
             chosen_node = active_nodes[node_idx]
             
-            # 4. Execute the single continuous-time event
-
             # Branch
             if phase_idx == 0:
                 occupants[chosen_node] += 1
@@ -119,7 +101,7 @@ def run_simulation_gillespie(N, S, rb, rt, rs, trials):
             elif phase_idx == 1:
                 occupants[chosen_node] -= 1
                 
-                #Discard nodes with no tips to avoid clutter
+                #Discard nodes with no tips
                 if occupants[chosen_node] <= 0:
                     del occupants[chosen_node]
                 
@@ -129,17 +111,13 @@ def run_simulation_gillespie(N, S, rb, rt, rs, trials):
 
             # Synapse    
             elif phase_idx == 2:
-                # Check if this node is gaining its very first synapse
-                # Searching for chosen_node initializes it with value 0
-
+                
                 strengths[chosen_node] += 1
                 num_syns += 1
 
-                # Stop the trial immediately the moment our connection goal is met
                 if num_syns >= S:
                     break
 
-        # Save all non-zero synapse values from this trial run
         global_strength_counts.update(strengths.values())
         print(f"Done with trial {k+1}/{trials} | Synapses made: {num_syns}", end='\r')
 
@@ -152,8 +130,6 @@ def run_simulation_gillespie(N, S, rb, rt, rs, trials):
 
 def run_simulation_random_gillespie(N, S, rb, rt, rs, p, trials):
 
-    #Make connected random graph and store in two lists
-    
     g = ig.Graph.Erdos_Renyi(n=N, p=p, directed=False)
 
     while not g.is_connected():
@@ -162,7 +138,6 @@ def run_simulation_random_gillespie(N, S, rb, rt, rs, p, trials):
     neighbors_list = g.get_adjlist()
     degrees = np.array([len(neighbors) for neighbors in neighbors_list], dtype=np.int32)
 
-    
     #Create pointers to section of list containing a neuron's neighbors
     offsets = np.zeros(N + 1, dtype=np.int64)
     offsets[1:] = np.cumsum(degrees)
@@ -173,7 +148,6 @@ def run_simulation_random_gillespie(N, S, rb, rt, rs, p, trials):
         flattened_neighbors[offsets[i]:offsets[i+1]] = neighbors
 
     # Neuron n's degree is offsets[n+1] - offsets[n]
-    # Choose a random neighbor with flattened_neighbors[offsets[n] + np.random.randint(0,deg)]
 
     print(f'\nConstructed random graph with {N} neurons and {p} of edges')
 
@@ -184,15 +158,12 @@ def run_simulation_random_gillespie(N, S, rb, rt, rs, p, trials):
     for j in range(trials):
         num_syns = 0
         
-        # State tracking: { node_index: count }
-        # Every trial begins with exactly 1 walker at a random root node
         start = np.random.randint(0,N)
         occupants = {start: 1}
         strengths = defaultdict(int)
 
         while True:
 
-            # 1. Calculate the active propensities per node
             active_nodes = list(occupants.keys())
             active_counts = np.array([occupants[node] for node in active_nodes], dtype=int)
             
@@ -200,13 +171,11 @@ def run_simulation_random_gillespie(N, S, rb, rt, rs, p, trials):
             node_trans_propensities = active_counts * rt
             node_syn_propensities = active_counts * rs
             
-            # Global propensity sums
             total_b = node_branch_propensities.sum()
             total_t = node_trans_propensities.sum()
             total_s = node_syn_propensities.sum()
             R_total = total_b + total_t + total_s
-                
-            # 3. Determine WHICH type of event happens and WHERE it happens
+
             all_propensities = np.concatenate([
                 node_branch_propensities, 
                 node_trans_propensities, 
@@ -232,7 +201,7 @@ def run_simulation_random_gillespie(N, S, rb, rt, rs, p, trials):
             elif phase_idx == 1:
                 occupants[chosen_node] -= 1
                 
-                #Discard nodes with no tips to avoid clutter
+                #Discard nodes with no tips
                 if occupants[chosen_node] <= 0:
                     del occupants[chosen_node]
                 
@@ -246,17 +215,14 @@ def run_simulation_random_gillespie(N, S, rb, rt, rs, p, trials):
 
             # Synapse    
             elif phase_idx == 2:
-                # Check if this node is gaining its very first synapse
-                # Searching for chosen_node initializes it with value 0
 
                 strengths[chosen_node] += 1
                 num_syns += 1
 
-                # Stop the trial immediately the moment our connection goal is met
+
                 if num_syns >= S:
                     break
 
-        # Save all non-zero synapse values from this trial run
         global_strength_counts.update(strengths.values())
 
     # Combined output
@@ -290,7 +256,7 @@ for it_p in tqdm(p_vals,desc = "Simulating on random graphs"):
 
 #Plotting
 
-mm = 1 / 25.4  # 1 mm in inches
+mm = 1 / 25.4
 
 plt.rcParams['font.family'] = 'sans-serif'
 plt.rcParams['font.sans-serif'] = ['Arial']
@@ -305,24 +271,6 @@ plt.rcParams['ytick.labelsize'] = 7
 plt.rcParams['axes.linewidth'] = 0.5
 plt.rcParams['xtick.major.width'] = 0.5
 plt.rcParams['ytick.major.width'] = 0.5
-
-"""
-fig, ax = plt.subplots(1,1,figsize=(90 * mm,90 * mm), constrained_layout=True)
-
-cmap = mpl.colormaps['plasma']
-norm = Normalize(vmin = min(hets), vmax = max(hets))
-colors = [cmap(norm(het)) for het in hets]
-
-ax.scatter(k_vals,hets,color = colors, s=49, clip_on=False, zorder=10)
-ax.set_xscale('log')
-ax.set_yscale('linear')
-ax.spines['top'].set_visible(False)
-ax.spines['right'].set_visible(False)
-ax.set_xlabel('Average neuron degree $k$')
-ax.set_ylabel('Heterogeneity')
-
-plt.savefig(OUT_SVG1)
-"""
 
 fig, axs = plt.subplots(1,3,figsize=(108 * mm,36 * mm), sharey = True, constrained_layout=True)
 
@@ -342,4 +290,4 @@ plt.savefig(OUT_SVG)
 
 # For random graph plot in S2, use:
 
-# N = 139255   S = 1105   rb = 0.25   rt = 0.1   rs = 1   trials = 1000
+# N = 139255   S = 1105   rb = 0.25   rt = 0.1   rs = 1   trials = 1000   p_vals = [1,0.01,0.0001]
