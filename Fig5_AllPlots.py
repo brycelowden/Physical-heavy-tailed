@@ -9,12 +9,9 @@ from matplotlib.collections import LineCollection
 from scipy import odr
 from scipy.special import zeta
 
-# =============================================================================
-# 1. PARAMETERS, FILE CONFIGURATIONS, & INDEPENDENT SIZES
-# =============================================================================
-DATA_CSV      = 'C:/Users/bryce/OneDrive/Desktop/Research/Heavy-Tailed CS/FAFB/Figure 5/Fig5_SortedNeurons_Stage2.csv'
-CONN_DATA_CSV = 'C:/Users/bryce/OneDrive/Desktop/Research/Heavy-Tailed CS/FAFB/Data/FlyWireUndCons.csv'
-OUT_FOLD      = 'C:/Users/bryce/OneDrive/Desktop/Research/Heavy-Tailed CS/Figure Files/Figure 5/'
+DATA_CSV      = '[...]' # 'Fig5_SortedNeurons_Stage2.csv'
+CONN_DATA_CSV = '[...]'  # 'FlyWireUndCons.csv'
+OUT_FOLD      = '[...]'
 
 NEURON_ID_COL  = 'id'  
 CONN_PRE_COL   = 'neuron_id_1'
@@ -29,7 +26,6 @@ DOT_SIZE       = 100
 BIG_DOT_SIZE   = 100    
 MIN_BIN_NEURONS = 25  
 
-# --- CUSTOM NEUROTRANSMITTER COLORS --- #
 cmap_nt = mpl.colormaps[NT_CMAP]
 NT_COLOR_DICT = {
     'ACH': "#00d5ff",
@@ -55,7 +51,6 @@ SIZE_DOT_NP     = (60 * mm, 35 * mm)
 SIZE_DOT_NT     = (60 * mm, 35 * mm)   
 SIZE_QUANT      = (60 * mm, 70 * mm)   
 
-# Bounding boxes
 SIZE_NP_MOSAIC  = (4 * block, 3 * block)
 SIZE_NT_MOSAIC  = (3 * block, 3 * block)
 SIZE_NP_MULTILINE = (120 * mm, 60 * mm)
@@ -83,7 +78,6 @@ plt.rcParams['axes.linewidth'] = 0.5
 plt.rcParams['xtick.major.width'] = 0.5
 plt.rcParams['ytick.major.width'] = 0.5
 
-print("Loading consolidated dataset...")
 df = pd.read_csv(DATA_CSV)
 
 if 'neuropil' in df.columns:
@@ -92,9 +86,8 @@ if 'neuropil' in df.columns:
 if 'neurotransmitter_type' in df.columns:
     df['neurotransmitter_type'] = df['neurotransmitter_type'].replace(['OCT', 'SER', 'DA'], 'Modulatory')
 
-# =============================================================================
-# 2. PRE-COMPUTE SORTED NEUROPIL COLORS (SORTED BY BRANCHES PER CONNECTION)
-# =============================================================================
+# sort neuropils by branches per connection for coloring
+
 ignored_neuropils = ['Other', 'Ocelli']
 df_np_clean = df[df['neuropil'].notna() & (~df['neuropil'].isin(ignored_neuropils))].copy()
 
@@ -108,9 +101,6 @@ cmap_violins = mpl.colormaps[VIOLIN_CMAP]
 #Normalize colors between cmap(0.25) and cmap(0.95)
 neuropil_colors = {np_name: cmap_violins(0.25 + 0.7*(i/(len(sorted_np_means)-1))) for i, np_name in enumerate(sorted_np_means)}
 
-# =============================================================================
-# HELPER PLOTTING INSTANCE: Standard Scatter Framework
-# =============================================================================
 def create_base_scatter_fig(target_size, config_key,y_tick_spacing):
     fig, ax = plt.subplots(figsize=target_size, layout='constrained')
     ax.set_xscale('linear')  
@@ -128,7 +118,6 @@ def create_base_scatter_fig(target_size, config_key,y_tick_spacing):
     
     ax.xaxis.set_minor_locator(ticker.NullLocator())
     
-    # Enforce consistent y-axis major tick mark intervals of 0.02 across all dot plots
     ax.yaxis.set_major_locator(ticker.MultipleLocator(y_tick_spacing))
     
     ax.spines['top'].set_visible(False)
@@ -136,11 +125,7 @@ def create_base_scatter_fig(target_size, config_key,y_tick_spacing):
     ax.tick_params(direction='out', which='both')
     return fig, ax
 
-
-# =============================================================================
-# 3. PLOT 2: Neuropil 2D Subpopulation Dot Plot
-# =============================================================================
-print("Generating Plot 2: Neuropil Scatter Coordinate Mapping...")
+print("Plot 2: Neuropil Dots...")
 fig2, ax2 = create_base_scatter_fig(SIZE_DOT_NP, 'neuropil',0.04)
 
 for np_name in sorted_np_means:
@@ -156,16 +141,11 @@ ax2.xaxis.set_major_locator(ticker.MultipleLocator(0.2))
 plt.savefig(os.path.join(OUT_FOLD, 'fig5_2_neuropil_dots.svg'), format='svg')
 plt.close(fig2)
 
-
-# =============================================================================
-# 4. PLOT 3: Neurotransmitter 2D Dot Plot sorted by Heterogeneity
-# =============================================================================
-print("Generating Plot 3: Neurotransmitter Scatter Coordinates...")
+print("Plot 3: Neurotransmitter Dots...")
 fig3, ax3 = create_base_scatter_fig(SIZE_DOT_NT, 'neurotransmitter',0.02)
 
 df_nt_clean = df[df['neurotransmitter_type'].notna()].copy()
 
-#sorted_nt_means = (df_nt_clean.groupby('neurotransmitter_type')['heterogeneity'].mean().sort_values().index.tolist())
 sorted_nt_means = ['ACH','GLUT','GABA','Modulatory']
 
 print(sorted_nt_means)
@@ -190,10 +170,6 @@ for nt in sorted_nt_means:
 plt.savefig(os.path.join(OUT_FOLD, 'fig5_3_neurotransmitter_dots.svg'), format='svg')
 plt.close(fig3)
 
-
-# =============================================================================
-# HELPER METHOD: Quantile Profiling and Colorbar Engine
-# =============================================================================
 def generate_quantile_dot_plot(dataframe, split_col, filename, base_title, target_size, config_key, drop_zeros=False, exclude_highest_bin=False, y_tick_spacing=0.02):
     sub_df = dataframe[dataframe[split_col].notna() & 
                        dataframe['branches_per_connection'].notna() & 
@@ -244,47 +220,41 @@ def generate_quantile_dot_plot(dataframe, split_col, filename, base_title, targe
     plt.savefig(os.path.join(OUT_FOLD, filename), format='svg')
     plt.close(fig)
 
-
-# =============================================================================
-# 5. PLOTS 4 THROUGH 14: Continuous Quantile Matrices
-# =============================================================================
-print("Generating Plot 4: Reciprocity Quantile Groups...")
+print("Plot 4: Reciprocity...")
 generate_quantile_dot_plot(df, 'reciprocity', 'fig5_4_reciprocity_dots.svg', 'Reciprocity', SIZE_QUANT, 'reciprocity',y_tick_spacing=0.02)
 
-print("Generating Plot 5: Olfactory Distance Quantile Groups...")
+print("Plot 5: Olfactory Distance...")
 generate_quantile_dot_plot(df, 'distance_olfactory', 'fig5_5_olfactory_distance_dots.svg', 'Olfactory distance', SIZE_QUANT, 'olfactory', drop_zeros=True)
 
-print("Generating Plot 6: Optic Distance Quantile Groups...")
+print("Plot 6: Optic Distance...")
 generate_quantile_dot_plot(df, 'distance_optic', 'fig5_6_optic_distance_dots.svg', 'Optic distance', SIZE_QUANT, 'optic', drop_zeros=True)
 
-print("Generating Plot 7: Clustering Coefficient...")
+print("Plot 7: Clustering Coefficient...")
 generate_quantile_dot_plot(df, 'clustering_coefficient', 'fig5_7_clustering_coefficient_dots.svg', 'Clustering coefficient', SIZE_QUANT, 'optic',y_tick_spacing=0.01)
 
-print("Generating Plot 8: Closeness Centrality...")
+print("Plot 8: Closeness Centrality...")
 generate_quantile_dot_plot(df, 'closeness_centrality', 'fig5_8_closeness_centrality_dots.svg', 'Closeness centrality', SIZE_QUANT, 'optic')
 
-print("Generating Plot 9: Betweenness Centrality...")
+print("Plot 9: Betweenness Centrality...")
 generate_quantile_dot_plot(df, 'betweenness_centrality', 'fig5_9_betweenness_centrality_dots.svg', 'Betweenness centrality', SIZE_QUANT, 'optic')
 
-print("Generating Plot 10: In/Out ratio...")
+print("Plot 10: In/Out ratio...")
 generate_quantile_dot_plot(df, 'in_out', 'fig5_10_in_out_dots.svg', 'In/out ratio', SIZE_QUANT, 'optic')
 
-print("Generating Plot 11: PageRank...")
+print("Plot 11: PageRank...")
 generate_quantile_dot_plot(df, 'pagerank', 'fig5_11_pagerank_dots.svg', 'PageRank', SIZE_QUANT, 'optic')
 
-print("Generating Plot 12: K-Shell...")
+print("Plot 12: K-Shell...")
 generate_quantile_dot_plot(df, 'k_shell', 'fig5_12_kshell_dots.svg', 'k-shell index', SIZE_QUANT, 'optic')
 
-print("Generating Plot 13: Hub score...")
+print("Plot 13: Hub score...")
 generate_quantile_dot_plot(df, 'hub_score', 'fig5_13_hubscore_dots.svg', 'Hub score', SIZE_QUANT, 'optic')
 
-print("Generating Plot 14: Authority score...")
+print("Plot 14: Authority score...")
 generate_quantile_dot_plot(df, 'authority_score', 'fig5_14_authorityscore_dots.svg', 'Authority score', SIZE_QUANT, 'optic')
 
+# Curve fitting as in figure 3
 
-# =============================================================================
-# HELPER METHOD: ODR Fitting (Figure 3 Style Logic)
-# =============================================================================
 def fit_connection_odr(syn_counts):
     unique_counts, counts = np.unique(syn_counts, return_counts=True)
     sort_idx = np.argsort(unique_counts)
@@ -304,53 +274,6 @@ def fit_connection_odr(syn_counts):
     fit_output = fit_odr.run()
     return xdata, ydata, fit_output.beta[0], fit_output.beta[1]
 
-
-# =============================================================================
-# HELPER METHOD: Generate Custom Multiline Plots (Figure 4 Style Logic)
-# =============================================================================
-def generate_category_multiline_plot(dataframe, category_col, active_categories, color_mapping, filename, target_size, xlabel):
-    fig, ax = plt.subplots(figsize=target_size, layout='constrained')
-    
-    for cat in active_categories:
-        cat_df = dataframe[dataframe[category_col] == cat].copy()
-        if len(cat_df) < MIN_BIN_NEURONS:
-            continue
-            
-        x_min, x_max = cat_df['branches_per_connection'].min(), cat_df['branches_per_connection'].max()
-        if x_min == x_max or np.isnan(x_min): continue
-        
-        bins = np.logspace(np.log10(x_min), np.log10(x_max), 20)
-        bins = np.unique(bins)
-        bin_centers = np.sqrt(bins[:-1] * bins[1:])
-        
-        cat_df['temp_bin'] = pd.cut(cat_df['branches_per_connection'], bins=bins, labels=False, include_lowest=True)
-        stats = cat_df.groupby('temp_bin', observed=True)['heterogeneity'].agg(['mean', 'count']).reset_index()
-        
-        full_x, full_mean = [], []
-        for _, row in stats.iterrows():
-            b_idx = int(row['temp_bin'])
-            if row['count'] >= MIN_BIN_NEURONS:
-                full_x.append(bin_centers[b_idx])
-                full_mean.append(row['mean'])
-                
-        if len(full_x) > 1:
-            ax.plot(full_x, full_mean, color=color_mapping[cat], linewidth=2.0, label=cat, zorder=3)
-            
-    ax.set_xscale('log')
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel('Heterogeneity')
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.tick_params(direction='out', which='both')
-    
-    plt.savefig(os.path.join(OUT_FOLD, filename), format='svg')
-    plt.close(fig)
-
-
-# =============================================================================
-# DATA PREPARATION & MOSAIC GENERATION
-# =============================================================================
-print("\nProcessing New Figure 5 Additions...")
 if os.path.exists(CONN_DATA_CSV):
     df_conn = pd.read_csv(CONN_DATA_CSV)
     
@@ -362,8 +285,8 @@ if os.path.exists(CONN_DATA_CSV):
     df_conn['pre_nt'] = df_conn[CONN_PRE_COL].map(neuron_nt_map)
     df_conn['post_nt'] = df_conn[CONN_POST_COL].map(neuron_nt_map)
 
-    # --- 1. Neuropil Connection Strength Mosaic (6x2) ---
-    print("Generating Plot 15: Neuropil Fit Mosaic (4x3)...")
+    
+    print("Plot 15: Neuropil Fit Mosaic (4x3)...")
     fig_np_mos, axes_np = plt.subplots(3, 4, figsize=SIZE_NP_MOSAIC, sharex=True, sharey=True, layout='constrained')
     axes_flat_np = axes_np.flatten()
     
@@ -388,26 +311,23 @@ if os.path.exists(CONN_DATA_CSV):
         ax.set_yscale('log')
         
         ax.set_xlim(1, 10**4)
-        # Keeps all major tick marks every decade
+
         ax.xaxis.set_major_locator(ticker.LogLocator(base=10.0, subs=(1.0,), numticks=10))
-        #ax.xaxis.set_minor_locator(ticker.LogLocator(base=10.0, subs=np.arange(2, 10), numticks=10))
-        # Custom Formatter: Labels only 10^0, 10^2, 10^4. Leaves 10^1 and 10^3 unlabeled.
+
         ax.xaxis.set_major_formatter(ticker.FuncFormatter(
             lambda x, pos: f"$10^{{{int(np.round(np.log10(x)))}}}$" if x > 0 and int(np.round(np.log10(x))) in {0, 2, 4} else ""
         ))
         
         ax.set_ylim(10**(-8), 10**0)
-        # Keeps all major tick marks every decade
+
         ax.yaxis.set_major_locator(ticker.LogLocator(base=10.0, subs=(1.0,), numticks=10))
-        #ax.yaxis.set_minor_locator(ticker.LogLocator(base=10.0, subs=np.arange(2, 10), numticks=10))
-        # Custom Formatter: Labels only 10^-6, 10^-3, 10^0.
+
         ax.yaxis.set_major_formatter(ticker.FuncFormatter(
             lambda y, pos: f"$10^{{{int(np.round(np.log10(y)))}}}$" if y > 0 and int(np.round(np.log10(y))) in {-8, -4, 0} else ""
         ))
 
         ax.tick_params(direction='out', which='minor', length=1.5, width=0.25)
         
-        # Hardcoded multi-line replacement rule for Periesophageal NP; standard breakdown for others
         if "Periesophageal" in np_name:
             wrapped_name = "Perieso-\nphageal\nNP"
         elif " " in np_name:
@@ -416,17 +336,9 @@ if os.path.exists(CONN_DATA_CSV):
         else:
             wrapped_name = np_name
             
-        # Box background face and edge alphas explicitly muted to force 100% transparency
         ax.text(0.95, 0.95, wrapped_name, transform=ax.transAxes, fontsize=8,
                 verticalalignment='top', horizontalalignment='right',
                 bbox=dict(boxstyle='square,pad=0.2', facecolor='none', edgecolor='none'))
-        
-        """
-        # Box for fit rb/rt
-        ax.text(0.05, 0.05, f'$r_b/r_t$\n$=${fit_rbrt:.2f}', transform=ax.transAxes, fontsize=5,
-                verticalalignment='bottom', horizontalalignment='left',
-                bbox=dict(boxstyle='square,pad=0.2', facecolor='none', edgecolor='none'))
-        """
                 
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
@@ -434,7 +346,6 @@ if os.path.exists(CONN_DATA_CSV):
     plt.savefig(os.path.join(OUT_FOLD, 'fig5_15_neuropil_mosaic.svg'), format='svg')
     plt.close(fig_np_mos)
 
-    # --- 2. Neurotransmitter Connection Strength Mosaic (2x2) ---
     print("Generating Plot 16: Neurotransmitter Fit Mosaic (2x2)...")
     fig_nt_mos, axes_nt = plt.subplots(2, 2, figsize=SIZE_NT_MOSAIC, sharex=True, sharey=True, layout='constrained')
     axes_flat_nt = axes_nt.flatten()
@@ -459,19 +370,17 @@ if os.path.exists(CONN_DATA_CSV):
         ax.set_yscale('log')
         
         ax.set_xlim(1, 10**4)
-        # Keeps all major tick marks every decade
+
         ax.xaxis.set_major_locator(ticker.LogLocator(base=10.0, subs=(1.0,), numticks=10))
-        #ax.xaxis.set_minor_locator(ticker.LogLocator(base=10.0, subs=np.arange(2, 10), numticks=10))
-        # Custom Formatter: Labels only 10^0, 10^2, 10^4.
+
         ax.xaxis.set_major_formatter(ticker.FuncFormatter(
             lambda x, pos: f"$10^{{{int(np.round(np.log10(x)))}}}$" if x > 0 and int(np.round(np.log10(x))) in {0, 2, 4} else ""
         ))
         
         ax.set_ylim(10**(-8), 10**0)
-        # Keeps all major tick marks every decade
+
         ax.yaxis.set_major_locator(ticker.LogLocator(base=10.0, subs=(1.0,), numticks=10))
-        #ax.yaxis.set_minor_locator(ticker.LogLocator(base=10.0, subs=np.arange(2, 10), numticks=10))
-        # Custom Formatter: Labels only 10^-8, 10^-4, 10^0.
+
         ax.yaxis.set_major_formatter(ticker.FuncFormatter(
             lambda y, pos: f"$10^{{{int(np.round(np.log10(y)))}}}$" if y > 0 and int(np.round(np.log10(y))) in {-8, -4, 0} else ""
         ))
@@ -484,20 +393,9 @@ if os.path.exists(CONN_DATA_CSV):
         else:
             wrapped_name = nt_name
             
-        # Box background face and edge alphas explicitly muted to force 100% transparency
         ax.text(0.95, 0.95, wrapped_name, transform=ax.transAxes, fontsize=8,
                 verticalalignment='top', horizontalalignment='right',
                 bbox=dict(boxstyle='square,pad=0.2', facecolor='none', edgecolor='none'))
-        
-        """
-        # Box for fit rb/rt
-        ax.text(0.05, 0.05, f'$r_b/r_t$\n$=${fit_rbrt:.2f}', transform=ax.transAxes, fontsize=5,
-                verticalalignment='bottom', horizontalalignment='left',
-                bbox=dict(boxstyle='square,pad=0.2', facecolor='none', edgecolor='none'))
-                
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        """
 
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
@@ -505,30 +403,4 @@ if os.path.exists(CONN_DATA_CSV):
     plt.savefig(os.path.join(OUT_FOLD, 'fig5_16_neurotransmitter_mosaic.svg'), format='svg')
     plt.close(fig_nt_mos)
 else:
-    print(f"Warning: Connection data not found at {CONN_DATA_CSV}. Skipping mosaic panels.")
-
-# --- 3. Neuropil Mean Heterogeneity Multiline Plot ---
-print("Generating Plot 17: Neuropil Multiline Profile...")
-generate_category_multiline_plot(
-    dataframe=df_np_clean,
-    category_col='neuropil',
-    active_categories=sorted_np_means,
-    color_mapping=neuropil_colors,
-    filename='fig5_17_neuropil_multiline.svg',
-    target_size=SIZE_NP_MULTILINE,
-    xlabel='Branches per connection'
-)
-
-# --- 4. Neurotransmitter Mean Heterogeneity Multiline Plot ---
-print("Generating Plot 18: Neurotransmitter Multiline Profile...")
-generate_category_multiline_plot(
-    dataframe=df_nt_clean,
-    category_col='neurotransmitter_type',
-    active_categories=sorted_nt_means,
-    color_mapping=nt_colors,
-    filename='fig5_18_neurotransmitter_multiline.svg',
-    target_size=SIZE_NT_MULTILINE,
-    xlabel='Branches per connection'
-)
-
-print(f"\nSuccess! Scaled and formatted vectors compiled to target folder destination: {OUT_FOLD}")
+    print("Connection data setup incorrectly")
