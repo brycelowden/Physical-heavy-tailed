@@ -11,7 +11,7 @@ Dorkenwald, S. et al. Neuronal wiring diagram of an adult brain. Nature 634, 124
 Schlegel, P. et al. Whole-brain annotation and multi-connectome cell typing of drosophila. Nature 634, 139–152 (2024).
 
 
-(3) The periphery data used in 'Fig5_NeuronSorting.py' was generated in and can be obtained from Betancourt, J. M., Varanasi, V., Clark, D. A. & Lynn, C. W. Heavy-tailed connections support robust neural communication, Preprint: https://doi.org/10.64898/2026.10.21.760834.
+(3) The periphery data used in 'Fig5_NeuronSorting.py' was generated in and can be obtained from Betancourt, J. M., Varanasi, V., Clark, D. A. & Lynn, C. W. Heavy-tailed connections support robust neural communication. Preprint: https://doi.org/10.64898/2026.10.21.760834 (2026).
 
 
 (4) The directed BANC connectivity CSV can be downloaded from FlyWire: https://codex.flywire.ai/api/download?dataset=banc. Use 'UndirectedBANC.py' in NonFAFB to generate the undirected connectivity CSV.
